@@ -1,4 +1,5 @@
 #include "raylib.h"
+#include <stdio.h>
 
 typedef struct Player {
     Rectangle rec;
@@ -20,6 +21,12 @@ typedef struct Shoot {
     Color color;
 } Shoot;
 
+typedef struct PowerUp {
+    Rectangle rec;
+    bool active;
+    Color color;
+} PowerUp;
+
 static const int screenWidth = 800;
 static const int screenHeight = 450;
 
@@ -33,6 +40,42 @@ static int nextWaveScore = 10;
 static Player player = { 0 };
 static Enemy enemy[10] = { 0 };
 static Shoot shoot[5] = { 0 };
+static PowerUp powerUp = { 0 };
+static bool powerUpActive = false;
+static int powerUpDuration = 300; // 아이템 지속 시간 (프레임)
+
+// 로컬 리더보드
+typedef struct LocalLeaderboard {
+    char name[30];
+    int score;
+} LocalLeaderboard;
+
+#define MAX_LEADERBOARD_ENTRIES 10
+
+static LocalLeaderboard leaderboard[MAX_LEADERBOARD_ENTRIES];
+
+void InitLocalLeaderboard(void) {
+    for (int i = 0; i < MAX_LEADERBOARD_ENTRIES; i++) {
+        strcpy(leaderboard[i].name, "Player");
+        leaderboard[i].score = 0;
+    }
+}
+
+void SaveLocalLeaderboard(void) {
+    FILE* file;
+    if (fopen_s(&file, "leaderboard.dat", "wb") == 0) {
+        fwrite(leaderboard, sizeof(LocalLeaderboard), MAX_LEADERBOARD_ENTRIES, file);
+        fclose(file);
+    }
+}
+
+void LoadLocalLeaderboard(void) {
+    FILE* file;
+    if (fopen_s(&file, "leaderboard.dat", "rb") == 0) {
+        fread(leaderboard, sizeof(LocalLeaderboard), MAX_LEADERBOARD_ENTRIES, file);
+        fclose(file);
+    }
+}
 
 void InitGame(void) {
     // Initialize game variables
@@ -75,6 +118,15 @@ void InitGame(void) {
         shoot[i].active = false;
         shoot[i].color = MAROON;
     }
+
+    // Initialize power-up item
+    powerUp.rec.width = 15;
+    powerUp.rec.height = 15;
+    powerUp.active = false;
+    powerUp.color = BLUE;
+
+    InitLocalLeaderboard();
+    LoadLocalLeaderboard();
 }
 
 void UpdateGame(void) {
@@ -154,6 +206,30 @@ void UpdateGame(void) {
                     }
                 }
             }
+
+            // 파워업 아이템 충돌
+            if (CheckCollisionRecs(player.rec, powerUp.rec) && powerUp.active) {
+                powerUpActive = true;
+                powerUp.active = false;
+                powerUpDuration = 300;
+            }
+
+            // 파워업 아이템 활성화 시간 관리
+            if (powerUpActive) {
+                powerUpDuration--;
+                if (powerUpDuration <= 0) {
+                    powerUpActive = false;
+                }
+            }
+
+            // 파워업 아이템 재생성
+            if (!powerUp.active && !powerUpActive) {
+                if (GetRandomValue(0, 1000) < 1) {
+                    powerUp.rec.x = GetRandomValue(screenWidth, screenWidth + 1000);
+                    powerUp.rec.y = GetRandomValue(0, screenHeight - powerUp.rec.height);
+                    powerUp.active = true;
+                }
+            }
         }
     }
     else {
@@ -180,13 +256,24 @@ void DrawGame(void) {
             if (shoot[i].active) DrawRectangleRec(shoot[i].rec, shoot[i].color);
         }
 
+        // 파워업 아이템 그리기
+        if (powerUp.active && !powerUpActive) {
+            DrawRectangleRec(powerUp.rec, powerUp.color);
+        }
+
         DrawText(TextFormat("Score: %04i", score), 20, 20, 30, GRAY);
         DrawText(TextFormat("Wave: %02i", wave), 20, 60, 30, GRAY);
 
         if (pause) DrawText("GAME PAUSED", screenWidth / 2 - MeasureText("GAME PAUSED", 40) / 2, screenHeight / 2 - 40, 40, GRAY);
     }
     else {
-        DrawText("GAME OVER - PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth() / 2 - MeasureText("GAME OVER - PRESS [ENTER] TO PLAY AGAIN", 20) / 2, GetScreenHeight() / 2 - 50, 20, GRAY);
+        DrawText("GAME OVER - PRESS [ENTER] TO PLAY AGAIN", GetScreenWidth() / 2 - MeasureText("GAME OVER - PRESS [ENTER] TO PLAY AGAIN", 20) / 2, GetScreenHeight() / 20 * 18 - 50, 20, GRAY);
+
+        // 리더보드 화면 표시
+        DrawText("Local Leaderboard", 280, 20, 20, GRAY);
+        for (int i = 0; i < MAX_LEADERBOARD_ENTRIES; i++) {
+            DrawText(TextFormat("%d. %s: %d", i + 1, leaderboard[i].name, leaderboard[i].score), 280, 60 + i * 30, 20, GRAY);
+        }
     }
 
     EndDrawing();
@@ -203,6 +290,8 @@ int main(void) {
         UpdateGame();
         DrawGame();
     }
+
+    SaveLocalLeaderboard(); // 게임 종료 시 리더보드 저장
 
     CloseWindow();
 
