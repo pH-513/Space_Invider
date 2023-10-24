@@ -6,4 +6,4 @@
 
 해당 게임은 스페이스 인베이더 라는 게임입니다.
 
-릴리즈를 통해 다운로드 할 수 있습니다.
+![image](https://github.com/choyeounghyeon/Space_Invider/assets/133370084/36e87519-fc47-4202-8123-9e7b4f90ea22)
