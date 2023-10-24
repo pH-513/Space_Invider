@@ -30,6 +30,11 @@ typedef struct PowerUp {
 static const int screenWidth = 800;
 static const int screenHeight = 450;
 
+static Texture2D mapTexture;
+static Texture2D enemyTexture;
+static Texture2D playerTexture;
+
+
 static bool gameOver = false;
 static bool pause = false;
 static int score = 0;
@@ -93,7 +98,7 @@ void InitGame(void) {
     player.rec.height = 20;
     player.speed.x = 5;
     player.speed.y = 5;
-    player.color = BLACK;
+    player.color = BLANK;
 
     // Initialize enemies
     for (int i = 0; i < 10; i++) {
@@ -101,10 +106,10 @@ void InitGame(void) {
         enemy[i].rec.height = 10;
         enemy[i].rec.x = GetRandomValue(screenWidth, screenWidth + 1000);
         enemy[i].rec.y = GetRandomValue(0, screenHeight - enemy[i].rec.height);
-        enemy[i].speed.x = 5 + wave;  // Increase enemy speed with each wave
-        enemy[i].speed.y = 5 + wave;
+        enemy[i].speed.x = 1 + wave;  // Increase enemy speed with each wave
+        enemy[i].speed.y = 1 + wave;
         enemy[i].active = true;
-        enemy[i].color = GRAY;
+        enemy[i].color = BLANK;
     }
 
     // Initialize shoots
@@ -171,6 +176,15 @@ void UpdateGame(void) {
                         shoot[i].active = true;
                         break;
                     }
+                }
+            }
+
+            // 파워업 아이템 재생성
+            if (!powerUp.active && !powerUpActive) {
+                if (GetRandomValue(0, 1000) < 1) {
+                    powerUp.rec.x = GetRandomValue(screenWidth, screenWidth + 1000);
+                    powerUp.rec.y = GetRandomValue(0, screenHeight - powerUp.rec.height);
+                    powerUp.active = true;
                 }
             }
 
@@ -246,20 +260,36 @@ void DrawGame(void) {
     ClearBackground(RAYWHITE);
 
     if (!gameOver) {
-        DrawRectangleRec(player.rec, player.color);
+        // 텍스처를 사용하여 맵 그리기
+        DrawTexture(mapTexture, 0, 0, WHITE);
+
+        // 텍스처를 사용하여 플레이어 그리기
+        DrawTexture(playerTexture, player.rec.x, player.rec.y, player.color);
 
         for (int i = 0; i < 10; i++) {
-            if (enemy[i].active) DrawRectangleRec(enemy[i].rec, enemy[i].color);
+            if (enemy[i].active) {
+                // 텍스처를 사용하여 적 그리기
+                DrawTexture(enemyTexture, enemy[i].rec.x, enemy[i].rec.y, enemy[i].color);
+
+                // 적의 히트 박스에 빨간색 테두리 그리기
+                DrawRectangleLinesEx(enemy[i].rec, 2, RED);
+            }
         }
 
         for (int i = 0; i < 5; i++) {
-            if (shoot[i].active) DrawRectangleRec(shoot[i].rec, shoot[i].color);
+            if (shoot[i].active) {
+                // 총알 그리기
+                DrawRectangleRec(shoot[i].rec, shoot[i].color);
+            }
         }
 
         // 파워업 아이템 그리기
         if (powerUp.active && !powerUpActive) {
             DrawRectangleRec(powerUp.rec, powerUp.color);
         }
+
+        // 플레이어의 히트 박스에 초록색 테두리 그리기
+        DrawRectangleLinesEx(player.rec, 2, GREEN);
 
         DrawText(TextFormat("Score: %04i", score), 20, 20, 30, GRAY);
         DrawText(TextFormat("Wave: %02i", wave), 20, 60, 30, GRAY);
@@ -279,10 +309,32 @@ void DrawGame(void) {
     EndDrawing();
 }
 
+
 int main(void) {
     InitWindow(screenWidth, screenHeight, "Simple Space Invaders");
 
     InitGame();
+
+    ClearBackground((Color) { 0, 0, 0, 0 }); // 투명 배경
+
+    // Load images
+    Image mapImage = LoadImage("Map.png");
+    Image enemyImage = LoadImage("Enemy.png");
+    Image playerImage = LoadImage("Player.png");
+
+    mapTexture = LoadTextureFromImage(mapImage);
+    enemyTexture = LoadTextureFromImage(enemyImage);
+    playerTexture = LoadTextureFromImage(playerImage);
+
+    UnloadImage(mapImage);
+    UnloadImage(enemyImage);
+    UnloadImage(playerImage);
+
+    if (mapImage.data == NULL || enemyImage.data == NULL || playerImage.data == NULL) {
+        // Failed to load the image(s)
+        CloseWindow();
+        return -1;
+    }
 
     SetTargetFPS(60);
 
