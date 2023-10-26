@@ -331,7 +331,7 @@ int main(void) {
     UnloadImage(playerImage);
 
     if (mapImage.data == NULL || enemyImage.data == NULL || playerImage.data == NULL) {
-        // Failed to load the image(s)
+        // Failed to load the 이미지
         CloseWindow();
         return -1;
     }
