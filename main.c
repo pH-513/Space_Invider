@@ -288,8 +288,16 @@ void DrawGame(void) {
             DrawRectangleRec(powerUp.rec, powerUp.color);
         }
 
-        // 플레이어의 히트 박스에 초록색 테두리 그리기
-        DrawRectangleLinesEx(player.rec, 2, GREEN);
+        // 플레이어의 히트 박스를 삼각형으로 그리기
+        Vector2 points[3]; // 삼각형의 꼭지점을 저장할 배열
+
+        // 삼각형의 꼭지점 좌표 설정 (이 예제에서는 임의의 좌표를 사용하겠습니다)
+        points[0] = (Vector2){ player.rec.x + player.rec.width / 2, player.rec.y }; // 꼭지점 1
+        points[1] = (Vector2){ player.rec.x, player.rec.y + player.rec.height }; // 꼭지점 2
+        points[2] = (Vector2){ player.rec.x + player.rec.width, player.rec.y + player.rec.height }; // 꼭지점 3
+
+        DrawTriangleLines(points[0], points[1], points[2], GREEN);
+
 
         DrawText(TextFormat("Score: %04i", score), 20, 20, 30, GRAY);
         DrawText(TextFormat("Wave: %02i", wave), 20, 60, 30, GRAY);
@@ -331,7 +339,7 @@ int main(void) {
     UnloadImage(playerImage);
 
     if (mapImage.data == NULL || enemyImage.data == NULL || playerImage.data == NULL) {
-        // Failed to load the 이미지
+        // 이미지 로드 실패시 해당 로직 실행
         CloseWindow();
         return -1;
     }
